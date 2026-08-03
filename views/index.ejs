@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OCR - Image to Text</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", "Noto Sans Bengali", sans-serif;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 720px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+            padding: 40px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header .icon {
+            font-size: 42px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            color: #1f2937;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        .lang-badges {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .lang-badges span {
+            background: #eef2ff;
+            color: #4f46e5;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 999px;
+        }
+
+        .upload-box {
+            border: 2px dashed #c7c9f5;
+            border-radius: 14px;
+            padding: 28px;
+            text-align: center;
+            background: #f8f7ff;
+            transition: 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .upload-box.dragover {
+            border-color: #6366f1;
+            background: #eef0ff;
+        }
+
+        .upload-box:hover {
+            border-color: #6366f1;
+            background: #f1f0ff;
+        }
+
+        .upload-box input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-box .upload-icon {
+            font-size: 34px;
+            margin-bottom: 8px;
+        }
+
+        .upload-box .upload-text {
+            color: #4b5563;
+            font-size: 14px;
+        }
+
+        .upload-box .upload-text strong {
+            color: #6366f1;
+        }
+
+        .upload-box .upload-hint {
+            color: #9ca3af;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        #preview {
+            display: none;
+            max-width: 100%;
+            max-height: 180px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+        }
+
+        #fileName {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #6366f1;
+            font-weight: 600;
+            display: none;
+        }
+
+        button.submit-btn {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button.submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        button.submit-btn:active {
+            transform: translateY(0);
+        }
+
+        button.submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-box {
+            margin-top: 20px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .result-box {
+            margin-top: 28px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 20px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .result-header h3 {
+            font-size: 15px;
+            color: #1f2937;
+        }
+
+        .copy-btn {
+            background: #6366f1;
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #4f46e5;
+        }
+
+        .result-text {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 15px;
+            line-height: 1.8;
+            color: #374151;
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .result-text::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .result-text::-webkit-scrollbar-thumb {
+            background: #c7c9f5;
+            border-radius: 10px;
+        }
+
+        footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 13px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 26px 20px;
+            }
+
+            .header h1 {
+                font-size: 21px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <span class="icon">🔎</span>
+                <h1>Image to Text </h1>
+                <p>ছবি আপলোড করুন, সাথে সাথে টেক্সট বের করে নিন</p>
+                <div class="lang-badges">
+                    <span>🇬🇧 English</span>
+                    <span>🇧🇩 বাংলা</span>
+                </div>
+            </div>
+
+            <form action="/upload" method="POST" enctype="multipart/form-data" id="ocrForm">
+                <label class="upload-box" id="uploadBox">
+                    <span class="upload-icon" id="uploadIcon">🖼️</span>
+                    <img id="preview" alt="preview" />
+                    <div class="upload-text"><strong>ছবি সিলেক্ট করুন</strong> অথবা ড্র্যাগ করে ছাড়ুন</div>
+                    <div class="upload-hint">PNG, JPG, JPEG সাপোর্টেড</div>
+                    <div id="fileName"></div>
+                    <input type="file" name="avatar" id="fileInput" accept="image/png, image/jpeg, image/jpg"
+                        required />
+                </label>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span class="spinner" id="spinner"></span>
+                    <span id="btnText">Convert</span>
+                </button>
+            </form>
+
+            <% if (typeof error !=="undefined" && error) { %>
+                <div class="error-box">⚠️ <%= error %>
+                </div>
+                <% } %>
+
+                    <% if (typeof text !=="undefined" && text) { %>
+                        <div class="result-box">
+                            <div class="result-header">
+                                <h3>এক্সট্রাক্ট করা টেক্সট</h3>
+                                <button class="copy-btn" onclick="copyText()">Copy</button>
+                            </div>
+                            <div class="result-text" id="resultText">
+                                <%= text %>
+                            </div>
+                        </div>
+                        <% } %>
+        </div>
+        <footer>Create By CodeWidth Faruk</footer>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById("fileInput");
+        const fileNameBox = document.getElementById("fileName");
+        const uploadBox = document.getElementById("uploadBox");
+        const uploadIcon = document.getElementById("uploadIcon");
+        const preview = document.getElementById("preview");
+        const form = document.getElementById("ocrForm");
+        const submitBtn = document.getElementById("submitBtn");
+        const spinner = document.getElementById("spinner");
+        const btnText = document.getElementById("btnText");
+
+        function showFile(file) {
+            if (!file) return;
+            fileNameBox.style.display = "block";
+            fileNameBox.textContent = "📎 " + file.name;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.style.display = "block";
+                uploadIcon.style.display = "none";
+            };
+            reader.readAsDataURL(file);
+        }
+
+        fileInput.addEventListener("change", () => {
+            if (fileInput.files.length > 0) showFile(fileInput.files[0]);
+        });
+
+        uploadBox.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            uploadBox.classList.add("dragover");
+        });
+
+        uploadBox.addEventListener("dragleave", () => {
+            uploadBox.classList.remove("dragover");
+        });
+
+        uploadBox.addEventListener("drop", (e) => {
+            e.preventDefault();
+            uploadBox.classList.remove("dragover");
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                showFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        form.addEventListener("submit", () => {
+            submitBtn.disabled = true;
+            spinner.style.display = "inline-block";
+            btnText.textContent = "Processing...";
+        });
+
+        function copyText() {
+            const text = document.getElementById("resultText").innerText;
+            navigator.clipboard.writeText(text);
+            const btn = document.querySelector(".copy-btn");
+            btn.textContent = "Copied!";
+            setTimeout(() => (btn.textContent = "Copy"), 1500);
+        }
+    </script>
+</body>
+
+</html>
