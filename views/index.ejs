@@ -298,7 +298,7 @@
                 </div>
             </div>
 
-            <form action="/upload" method="POST" enctype="multipart/form-data" id="ocrForm">
+            <form id="ocrForm">
                 <label class="upload-box" id="uploadBox">
                     <span class="upload-icon" id="uploadIcon">🖼️</span>
                     <img id="preview" alt="preview" />
@@ -315,22 +315,8 @@
                 </button>
             </form>
 
-            <% if (typeof error !=="undefined" && error) { %>
-                <div class="error-box">⚠️ <%= error %>
-                </div>
-                <% } %>
-
-                    <% if (typeof text !=="undefined" && text) { %>
-                        <div class="result-box">
-                            <div class="result-header">
-                                <h3>এক্সট্রাক্ট করা টেক্সট</h3>
-                                <button class="copy-btn" onclick="copyText()">Copy</button>
-                            </div>
-                            <div class="result-text" id="resultText">
-                                <%= text %>
-                            </div>
-                        </div>
-                        <% } %>
+            <div id="errorBox"></div>
+            <div id="resultBox"></div>
         </div>
         <footer>Create By CodeWidth Faruk</footer>
     </div>
@@ -345,6 +331,8 @@
         const submitBtn = document.getElementById("submitBtn");
         const spinner = document.getElementById("spinner");
         const btnText = document.getElementById("btnText");
+        const errorBox = document.getElementById("errorBox");
+        const resultBox = document.getElementById("resultBox");
 
         function showFile(file) {
             if (!file) return;
@@ -382,10 +370,47 @@
             }
         });
 
-        form.addEventListener("submit", () => {
+        // AJAX submit — page reload নেই, তাই fast মনে হবে
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            if (!fileInput.files.length) return;
+
             submitBtn.disabled = true;
             spinner.style.display = "inline-block";
             btnText.textContent = "Processing...";
+            errorBox.innerHTML = "";
+            resultBox.innerHTML = "";
+
+            const formData = new FormData();
+            formData.append("avatar", fileInput.files[0]);
+
+            try {
+                const res = await fetch("/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+                const data = await res.json();
+
+                if (!res.ok || data.error) {
+                    errorBox.innerHTML = `<div class="error-box">⚠️ ${data.error}</div>`;
+                } else {
+                    resultBox.innerHTML = `
+                        <div class="result-box">
+                            <div class="result-header">
+                                <h3>এক্সট্রাক্ট করা টেক্সট</h3>
+                                <button class="copy-btn" onclick="copyText()">Copy</button>
+                            </div>
+                            <div class="result-text" id="resultText">${data.text}</div>
+                        </div>`;
+                }
+            } catch (err) {
+                errorBox.innerHTML = `<div class="error-box">⚠️ নেটওয়ার্ক সমস্যা হয়েছে</div>`;
+            } finally {
+                submitBtn.disabled = false;
+                spinner.style.display = "none";
+                btnText.textContent = "Convert";
+            }
         });
 
         function copyText() {
